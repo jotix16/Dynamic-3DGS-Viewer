@@ -1,11 +1,7 @@
-# Tiny Gaussian Splatting Viewer
-![UI demo](assets/teaser.png)
-This is a simple Gaussian Splatting Viewer built with PyOpenGL / CUDARasterizer. It's easy to install with minimum dependencies. The goal of this project is to provide a minimum example of the viewer for research and study purpose. 
+# Tiny 3DGStreamViewer
+This is a fork of [GaussianSplattingViewer](https://github.com/limacv/GaussianSplattingViewer), as a simple 3DGStreamViewer built with PyOpenGL / CUDARasterizer.
 
-# News!
-1/10/2024: The OpenGL renderer has faster sorting backend with `torch.argsort` & `cupy.argsort`. With cuda based sorting, it achieves nearly real-time sorting with OpenGL backend.
-
-12/21/2023: Now we support rendering using the official cuda rasterizer!
+Note this is not the renderer we used to evaluate the render performance of [3DGStream](https://github.com/SJoJoK/3DGStream) in our paper "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos", but is still efficient enough for real-time rendering.
 
 # Usage
 Install the dependencies:
@@ -23,6 +19,9 @@ You can check how to use UI in the "help" panel.
 The Gaussian file loader is compatiable with the official implementation. 
 Therefore, download pretrained Gaussian PLY file from [this official link](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip), and select the "point_cloud.ply" you like by clicking the 'open ply' button, and you are all set!
 
+## To view Free-Viewpoint Videos of 3DGStream
+
+We are actively working on this and anticipate uploading test cases within the next few hours/days, at which point we will also provide detailed usage instructions.
 
 # Optional dependencies:
 
@@ -39,22 +38,3 @@ pip install cuda-python
     pip install cupy-cuda11x // for cuda 11
     pip install cupy-cuda12x // for cuda 12
     ```
-
-
-# Troubleshoot
-
-The rendering speed of is comparable to the official CUDA renderer. If you're experiencing slow rendering, it's likely you are using integrated graphics card instead of a high-performance one. You can configure python to use high-performance graphics card in system settings. In Windows, you can set in Setting > System > Display > Graphics. See the screenshot below for example.
-
-![Setting > System > Display > Graphics](assets/setting.png)
-
-# Limitations
-- The implementation utilizes SSBO, which is only support by OpenGL version >= 4.3. Although this version is widely adopted, MacOS is an exception. As a result, this viewer does not support MacOS.
-
-- The `cuda` backend currently does not support other visualizations.
-
-- Based on the flip test between the two backends, the unofficial implementation seems producing slightly different results compared with the official cuda version.
-
-# TODO
-- Make the projection matrix compatiable with official cuda implementation
-- Tighter billboard to reduce number of fragments
-- Save viewing parameters
