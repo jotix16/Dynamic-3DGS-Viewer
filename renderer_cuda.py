@@ -253,7 +253,7 @@ class CUDARenderer(GaussianRenderBase):
         # means2D = torch.zeros_like(self.gaussians.xyz, dtype=self.gaussians.xyz.dtype, requires_grad=False, device="cuda")
         if timestep-self.last_timestep>0 and timestep<len(self.NTCs):
             self.query_NTC(self.gaussians.xyz, timestep)
-            # self.s2_gaussians=self.cat_additions(timestep)
+            self.s2_gaussians=self.cat_additions(timestep)
             self.last_timestep+=1
         with torch.no_grad():
             img, radii = rasterizer(

@@ -8,7 +8,7 @@ from renderer_cuda import GaussianDataCUDA, gaus_cuda_from_cpu
 from util_gau import load_ply
 
 def load_NTCs(FVV_path, gau_cuda:GaussianDataCUDA):
-    NTC_paths=[os.path.join(FVV_path, 'NTCs', f'NTC_{frame_id:06}.pth') for frame_id in range(0, 299)]
+    NTC_paths=[os.path.join(FVV_path, 'NTCs', f'NTC_{frame_id:06}.pth') for frame_id in range(0, 300)]
     config_path=os.path.join(FVV_path, 'NTCs', 'config.json')
     xyz_bound = gau_cuda.get_xyz_bound()
     with open(config_path) as f:
@@ -20,7 +20,7 @@ def load_NTCs(FVV_path, gau_cuda:GaussianDataCUDA):
     return NTCs
 
 def load_Additions(FVV_path):
-    addition_paths=[os.path.join(FVV_path, 'additional_3dgs', f'additions_{frame_id:06}.ply') for frame_id in range(0, 299)]
+    addition_paths=[os.path.join(FVV_path, 'additional_3dgs', f'additions_{frame_id:06}.ply') for frame_id in range(0, 300)]
     additions_gaus=[load_ply(path) for path in addition_paths]
     additions_gaus_cuda=[gaus_cuda_from_cpu(gaus) for gaus in additions_gaus]
     return additions_gaus_cuda
