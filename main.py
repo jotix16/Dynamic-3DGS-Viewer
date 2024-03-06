@@ -6,6 +6,7 @@ import numpy as np
 import util
 import imageio
 import util_gau
+import time
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -37,9 +38,17 @@ g_show_help_win = True
 g_show_camera_win = False
 g_render_mode_tables = ["Gaussian Ball", "Flat Ball", "Billboard", "Depth", "SH:0", "SH:0~1", "SH:0~2", "SH:0~3 (default)"]
 g_render_mode = 7
+g_FVV_path=""
+VIDEO_FPS = 30.0
+VIDEO_INTERVAL = 1.0 / VIDEO_FPS
+
+g_last_frame_time = 0.0
+g_timestep = 0
+g_paused = True
+
 
 def impl_glfw_init():
-    window_name = "NeUVF editor"
+    window_name = "Tiny 3DGStream Viewer"
 
     if not glfw.init():
         print("Could not initialize OpenGL context")
@@ -115,7 +124,8 @@ def window_resize_callback(window, width, height):
 def main():
     global g_camera, g_renderer, g_renderer_list, g_renderer_idx, g_scale_modifier, g_auto_sort, \
         g_show_control_win, g_show_help_win, g_show_camera_win, \
-        g_render_mode, g_render_mode_tables
+        g_render_mode, g_render_mode_tables, \
+        g_FVV_path, g_paused, g_timestep, g_last_frame_time
         
     imgui.create_context()
     if args.hidpi:
@@ -146,7 +156,7 @@ def main():
     # gaussian data
     gaussians = util_gau.naive_gaussian()
     update_activated_renderer_state(gaussians)
-    
+    g_last_frame_time=time.time()
     # settings
     while not glfw.window_should_close(window):
         glfw.poll_events()
@@ -158,8 +168,11 @@ def main():
 
         update_camera_pose_lazy()
         update_camera_intrin_lazy()
-        
-        g_renderer.draw()
+        current_time=time.time()
+        if current_time - g_last_frame_time >= VIDEO_INTERVAL and not g_paused:
+            g_timestep+=1
+            g_last_frame_time = current_time
+        g_renderer.draw(g_timestep)
 
         # imgui ui
         if imgui.begin_main_menu_bar():
@@ -184,8 +197,30 @@ def main():
                     g_renderer = g_renderer_list[g_renderer_idx]
                     update_activated_renderer_state(gaussians)
 
-                imgui.text(f"fps = {imgui.get_io().framerate:.1f}")
                 imgui.text(f"# of Gaus = {len(gaussians)}")
+
+                imgui.text(f"Render FPS = {imgui.get_io().framerate:.1f}")
+                imgui.text(f"Video FPS = {VIDEO_FPS:.1f}")
+                imgui.text(f"FVV Dir = {g_FVV_path}")
+                imgui.text(f"Frame = {g_timestep}")
+                
+                if imgui.button("Pause"):
+                    g_paused = True 
+                    g_last_frame_time=time.time()
+                
+                imgui.same_line()
+                
+                if imgui.button("Continue"):
+                    g_paused = False
+                    g_last_frame_time=time.time()
+                    
+                imgui.same_line() 
+                
+                if imgui.button("Reset"):
+                    g_timestep=0
+                    g_last_frame_time=time.time() 
+                    
+                
                 if imgui.button(label='open ply'):
                     file_path = filedialog.askopenfilename(title="open ply",
                         initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
@@ -199,6 +234,17 @@ def main():
                         except RuntimeError as e:
                             pass
                 
+                imgui.same_line()
+                        
+                if imgui.button(label='load FVV'):
+                    dir_path = filedialog.askdirectory(title="load FVV",
+                        initialdir="C:\\Users"
+                        )
+                    if dir_path:
+                        try:
+                            g_FVV_path = dir_path
+                        except RuntimeError as e:
+                            pass                
                 # camera fov
                 changed, g_camera.fovy = imgui.slider_float(
                     "fov", g_camera.fovy, 0.001, np.pi - 0.001, "fov = %.3f"
@@ -255,6 +301,8 @@ def main():
                     #     projmat=g_camera.get_project_matrix(),
                     #     hfovxyfocal=g_camera.get_htanfovxy_focal()
                     # )
+                    # Add buttons directly in the main menu bar for control actions
+                    
                 imgui.end()
 
         if g_show_camera_win:
@@ -315,7 +363,7 @@ def main():
 
 if __name__ == "__main__":
     global args
-    parser = argparse.ArgumentParser(description="NeUVF editor with optional HiDPI support.")
+    parser = argparse.ArgumentParser(description="Tiny 3DGStream Viewer.")
     parser.add_argument("--hidpi", action="store_true", help="Enable HiDPI scaling for the interface.")
     args = parser.parse_args()
 

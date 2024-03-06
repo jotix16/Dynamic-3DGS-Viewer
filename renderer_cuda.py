@@ -52,6 +52,19 @@ void main()
 }
 """
 
+def quaternion_multiply(a, b):
+    a_norm=torch.nn.functional.normalize(a)
+    b_norm=torch.nn.functional.normalize(b)
+    w1, x1, y1, z1 = a_norm[:, 0], a_norm[:, 1], a_norm[:, 2], a_norm[:, 3]
+    w2, x2, y2, z2 = b_norm[:, 0], b_norm[:, 1], b_norm[:, 2], b_norm[:, 3]
+
+    w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+    x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+    y = w1 * y2 + y1 * w2 + z1 * x2 - x1 * z2
+    z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2
+
+    return torch.stack([w, x, y, z], dim=1)
+
 @dataclass
 class GaussianDataCUDA:
     xyz: torch.Tensor
@@ -108,7 +121,7 @@ class CUDARenderer(GaussianRenderBase):
             "scale_modifier": 1.,
             "viewmatrix": None,
             "projmatrix": None,
-            "sh_degree": 3,  # ?
+            "sh_degree": 1,  # ?
             "campos": None,
             "prefiltered": False,
             "debug": False
@@ -124,6 +137,11 @@ class CUDARenderer(GaussianRenderBase):
         
         self.vao = gl.glGenVertexArrays(1)
         self.tex = None
+        self.NTC = None
+        # the index of NTCs and addition_3dgs is the index of the current un-processed frame.
+        self.NTCs = []
+        self.addition_3dgs = []
+        self.last_timestep=0
         self.set_gl_texture(h, w)
 
         gl.glDisable(gl.GL_CULL_FACE)
@@ -176,6 +194,27 @@ class CUDARenderer(GaussianRenderBase):
         gl.glViewport(0, 0, w, h)
         self.set_gl_texture(h, w)
 
+    def set_NTC(self, timestep):
+        self.timestep = timestep
+        self.NTC = self.NTCs[timestep]
+    
+    @torch.no_grad()    
+    def query_NTC(self, xyz, timestep):
+        mask, d_xyz, d_rot = self.NTC[timestep](xyz)
+        self.gaussians.xyz += d_xyz
+        self.gaussians.rot = quaternion_multiply(self.gaussians.rot, d_rot)
+
+    @torch.no_grad()    
+    def cat_additions(self, timestep):
+        s2_gaussians = self.gaussians
+        additions=self.addition_3dgs[timestep]
+        s2_gaussians.xyz = torch.cat([additions.xyz, self.gaussians.xyz], dim=0)
+        s2_gaussians.rot = torch.cat([additions.rot, self.gaussians.rot], dim=0)
+        s2_gaussians.scale = torch.cat([additions.scale, self.gaussians.scale], dim=0)
+        s2_gaussians.opacity = torch.cat([additions.opacity, self.gaussians.opacity], dim=0)
+        s2_gaussians.sh = torch.cat([additions.sh, self.gaussians.sh], dim=0)
+        return s2_gaussians
+        
     def update_camera_pose(self, camera: util.Camera):
         view_matrix = camera.get_view_matrix()
         view_matrix[[0, 2], :] = -view_matrix[[0, 2], :]
@@ -193,7 +232,7 @@ class CUDARenderer(GaussianRenderBase):
         self.raster_settings["tanfovx"] = hfovx
         self.raster_settings["tanfovy"] = hfovy
 
-    def draw(self):
+    def draw(self, timestep: int = 0):
         # run cuda rasterizer now is just a placeholder
         # img = torch.meshgrid((torch.linspace(0, 1, 720), torch.linspace(0, 1, 1280)))
         # img = torch.stack([img[0], img[1], img[1], img[1]], dim=-1)
@@ -202,6 +241,10 @@ class CUDARenderer(GaussianRenderBase):
         raster_settings = GaussianRasterizationSettings(**self.raster_settings)
         rasterizer = GaussianRasterizer(raster_settings=raster_settings)
         # means2D = torch.zeros_like(self.gaussians.xyz, dtype=self.gaussians.xyz.dtype, requires_grad=False, device="cuda")
+        if timestep-self.last_timestep>0:
+            self.query_NTC(self.gaussians.xyz, timestep)
+            self.s2_gaussians=self.cat_additions(self.gaussians, timestep)
+            self.last_timestep+=1
         with torch.no_grad():
             img, radii = rasterizer(
                 means3D = self.gaussians.xyz,

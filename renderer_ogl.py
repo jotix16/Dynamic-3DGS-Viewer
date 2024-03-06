@@ -163,7 +163,8 @@ class OpenGLRenderer(GaussianRenderBase):
         util.set_uniform_mat4(self.program, proj_mat, "projection_matrix")
         util.set_uniform_v3(self.program, camera.get_htanfovxy_focal(), "hfovxy_focal")
 
-    def draw(self):
+    def draw(self, timestep: int = 0):
+        # run opengl rasterizer to render FVV is implemented.
         gl.glUseProgram(self.program)
         gl.glBindVertexArray(self.vao)
         num_gau = len(self.gaussians)
