@@ -6,6 +6,7 @@ import numpy as np
 import util
 import imageio
 import util_gau
+import util_3dgstream
 import time
 import tkinter as tk
 from tkinter import filedialog
@@ -243,6 +244,8 @@ def main():
                     if dir_path:
                         try:
                             g_FVV_path = dir_path
+                            g_renderer.NTCs = util_3dgstream.load_NTCs(g_FVV_path, g_renderer.gaussians)
+                            g_renderer.additional_3dgs = util_3dgstream.load_Additions(g_FVV_path)
                         except RuntimeError as e:
                             pass                
                 # camera fov

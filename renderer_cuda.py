@@ -80,6 +80,13 @@ class GaussianDataCUDA:
     def sh_dim(self):
         return self.sh.shape[-2]
     
+    @torch.no_grad()
+    def get_xyz_bound(self, percentile=86.6):
+        if self._xyz_bound_min is None:
+            half_percentile = (100 - percentile) / 200
+            self._xyz_bound_min = torch.quantile(self.xyz,half_percentile,dim=0)
+            self._xyz_bound_max = torch.quantile(self.xyz,1 - half_percentile,dim=0)
+        return self._xyz_bound_min, self._xyz_bound_max
 
 @dataclass
 class GaussianRasterizationSettingsStorage:
@@ -138,9 +145,9 @@ class CUDARenderer(GaussianRenderBase):
         self.vao = gl.glGenVertexArrays(1)
         self.tex = None
         self.NTC = None
-        # the index of NTCs and addition_3dgs is the index of the current un-processed frame.
+        # the index of NTCs and additional_3dgs is the index of the current un-processed frame.
         self.NTCs = []
-        self.addition_3dgs = []
+        self.additional_3dgs = []
         self.last_timestep=0
         self.set_gl_texture(h, w)
 
@@ -207,7 +214,7 @@ class CUDARenderer(GaussianRenderBase):
     @torch.no_grad()    
     def cat_additions(self, timestep):
         s2_gaussians = self.gaussians
-        additions=self.addition_3dgs[timestep]
+        additions=self.additional_3dgs[timestep]
         s2_gaussians.xyz = torch.cat([additions.xyz, self.gaussians.xyz], dim=0)
         s2_gaussians.rot = torch.cat([additions.rot, self.gaussians.rot], dim=0)
         s2_gaussians.scale = torch.cat([additions.scale, self.gaussians.scale], dim=0)
