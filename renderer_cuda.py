@@ -82,11 +82,8 @@ class GaussianDataCUDA:
     
     @torch.no_grad()
     def get_xyz_bound(self, percentile=86.6):
-        if self._xyz_bound_min is None:
-            half_percentile = (100 - percentile) / 200
-            self._xyz_bound_min = torch.quantile(self.xyz,half_percentile,dim=0)
-            self._xyz_bound_max = torch.quantile(self.xyz,1 - half_percentile,dim=0)
-        return self._xyz_bound_min, self._xyz_bound_max
+        half_percentile = (100 - percentile) / 200
+        return torch.quantile(self.xyz,half_percentile,dim=0), torch.quantile(self.xyz,1 - half_percentile,dim=0)
 
 @dataclass
 class GaussianRasterizationSettingsStorage:
@@ -157,6 +154,12 @@ class CUDARenderer(GaussianRenderBase):
 
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.gaussians = gaus_cuda_from_cpu(gaus)
+        self.init_gaussians = self.gaussians
+        self.init_gaussians.xyz = self.gaussians.xyz.clone()
+        self.init_gaussians.rot = self.gaussians.rot.clone()
+        self.init_gaussians.scale = self.gaussians.scale.clone()
+        self.init_gaussians.opacity = self.gaussians.opacity.clone()
+        self.init_gaussians.sh = self.gaussians.sh.clone()
         self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim))) - 1
 
     def sort_and_update(self, camera: util.Camera):
@@ -200,14 +203,10 @@ class CUDARenderer(GaussianRenderBase):
         self.raster_settings["image_width"] = int(w)
         gl.glViewport(0, 0, w, h)
         self.set_gl_texture(h, w)
-
-    def set_NTC(self, timestep):
-        self.timestep = timestep
-        self.NTC = self.NTCs[timestep]
     
     @torch.no_grad()    
     def query_NTC(self, xyz, timestep):
-        mask, d_xyz, d_rot = self.NTC[timestep](xyz)
+        mask, d_xyz, d_rot = self.NTCs[timestep](xyz)
         self.gaussians.xyz += d_xyz
         self.gaussians.rot = quaternion_multiply(self.gaussians.rot, d_rot)
 
@@ -221,6 +220,10 @@ class CUDARenderer(GaussianRenderBase):
         s2_gaussians.opacity = torch.cat([additions.opacity, self.gaussians.opacity], dim=0)
         s2_gaussians.sh = torch.cat([additions.sh, self.gaussians.sh], dim=0)
         return s2_gaussians
+    
+    def fvv_reset(self):
+        self.gaussians = self.init_gaussians
+        self.last_timestep=0
         
     def update_camera_pose(self, camera: util.Camera):
         view_matrix = camera.get_view_matrix()
@@ -248,9 +251,9 @@ class CUDARenderer(GaussianRenderBase):
         raster_settings = GaussianRasterizationSettings(**self.raster_settings)
         rasterizer = GaussianRasterizer(raster_settings=raster_settings)
         # means2D = torch.zeros_like(self.gaussians.xyz, dtype=self.gaussians.xyz.dtype, requires_grad=False, device="cuda")
-        if timestep-self.last_timestep>0:
+        if timestep-self.last_timestep>0 and timestep<len(self.NTCs):
             self.query_NTC(self.gaussians.xyz, timestep)
-            self.s2_gaussians=self.cat_additions(self.gaussians, timestep)
+            # self.s2_gaussians=self.cat_additions(timestep)
             self.last_timestep+=1
         with torch.no_grad():
             img, radii = rasterizer(

@@ -46,7 +46,7 @@ VIDEO_INTERVAL = 1.0 / VIDEO_FPS
 g_last_frame_time = 0.0
 g_timestep = 0
 g_paused = True
-
+g_reset = False
 
 def impl_glfw_init():
     window_name = "Tiny 3DGStream Viewer"
@@ -126,7 +126,7 @@ def main():
     global g_camera, g_renderer, g_renderer_list, g_renderer_idx, g_scale_modifier, g_auto_sort, \
         g_show_control_win, g_show_help_win, g_show_camera_win, \
         g_render_mode, g_render_mode_tables, \
-        g_FVV_path, g_paused, g_timestep, g_last_frame_time
+        g_FVV_path, g_paused, g_reset, g_timestep, g_last_frame_time
         
     imgui.create_context()
     if args.hidpi:
@@ -173,6 +173,10 @@ def main():
         if current_time - g_last_frame_time >= VIDEO_INTERVAL and not g_paused:
             g_timestep+=1
             g_last_frame_time = current_time
+        if g_reset:
+            g_renderer.fvv_reset()
+            g_reset = False
+            g_last_frame_time = time.time()
         g_renderer.draw(g_timestep)
 
         # imgui ui
@@ -218,6 +222,8 @@ def main():
                 imgui.same_line() 
                 
                 if imgui.button("Reset"):
+                    g_paused = True
+                    g_reset = True
                     g_timestep=0
                     g_last_frame_time=time.time() 
                     
