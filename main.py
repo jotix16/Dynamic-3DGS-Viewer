@@ -226,11 +226,16 @@ def main():
                     g_reset = True
                     g_timestep=0
                     g_last_frame_time=time.time() 
-                    
+
+                imgui.same_line() 
                 
-                if imgui.button(label='open ply'):
-                    file_path = filedialog.askopenfilename(title="open ply",
-                        initialdir="C:\\Users\\MSI_NB\\Downloads\\viewers",
+                if imgui.button("Step"):
+                    g_timestep+=1
+                    g_last_frame_time=time.time()                     
+                
+                if imgui.button(label='load ply'):
+                    file_path = filedialog.askopenfilename(title="load ply",
+                        initialdir="C:\\Users",
                         filetypes=[('ply file', '.ply')]
                         )
                     if file_path:
@@ -242,7 +247,21 @@ def main():
                             pass
                 
                 imgui.same_line()
-                        
+
+                if imgui.button(label='save ply'):
+                    file_path = filedialog.asksaveasfilename(title="save ply",
+                        initialdir="C:\\Users\\",
+                        defaultextension=".txt",
+                        filetypes=[('ply file', '.ply')]
+                        )
+                    if file_path:
+                        try:
+                            util_3dgstream.save_gau_cuda(g_renderer.gaussians, file_path)
+                        except RuntimeError as e:
+                            pass
+                
+                imgui.same_line()
+                                        
                 if imgui.button(label='load FVV'):
                     dir_path = filedialog.askdirectory(title="load FVV",
                         initialdir="C:\\Users"

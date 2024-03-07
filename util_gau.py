@@ -74,7 +74,8 @@ def load_ply(path):
 
     extra_f_names = [p.name for p in plydata.elements[0].properties if p.name.startswith("f_rest_")]
     extra_f_names = sorted(extra_f_names, key = lambda x: int(x.split('_')[-1]))
-    assert len(extra_f_names)==3 * (max_sh_degree + 1) ** 2 - 3
+    # assert len(extra_f_names)==3 * (max_sh_degree + 1) ** 2 - 3
+    max_sh_degree = int(np.sqrt((len(extra_f_names)+3)//3)) - 1
     features_extra = np.zeros((xyz.shape[0], len(extra_f_names)))
     for idx, attr_name in enumerate(extra_f_names):
         features_extra[:, idx] = np.asarray(plydata.elements[0][attr_name])
