@@ -160,11 +160,11 @@ def main():
     g_last_frame_time=time.time()
     
     #debug only
-    gaussians = util_gau.load_ply("F:\\3dgstream\\flame_steak\\init_3dgs.ply")
-    g_renderer.update_gaussian_data(gaussians)
-    g_renderer.sort_and_update(g_camera)
-    g_renderer.NTCs = util_3dgstream.load_NTCs("F:\\3dgstream\\flame_steak", g_renderer.gaussians, 300)
-    g_renderer.additional_3dgs = util_3dgstream.load_Additions("F:\\3dgstream\\flame_steak", 300)
+    # gaussians = util_gau.load_ply("F:\\3dgstream\\flame_steak\\init_3dgs.ply")
+    # g_renderer.update_gaussian_data(gaussians)
+    # g_renderer.sort_and_update(g_camera)
+    # g_renderer.NTCs = util_3dgstream.load_NTCs("F:\\3dgstream\\flame_steak", g_renderer.gaussians, 300)
+    # g_renderer.additional_3dgs = util_3dgstream.load_Additions("F:\\3dgstream\\flame_steak", 300)
     
     # settings
     while not glfw.window_should_close(window):
