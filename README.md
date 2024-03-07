@@ -3,6 +3,10 @@ This is a fork of [GaussianSplattingViewer](https://github.com/limacv/GaussianSp
 
 Note this is not the renderer we used to evaluate the render performance of 3DGStream in our paper "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos", but is still efficient enough for real-time renderable FVVs
 
+## Availble FVVs:
+
+[Flame Steak](https://drive.google.com/file/d/1AXDqSzSaT_uNu_DhKeSmZmrBAfuOhWYY/view?usp=drive_link)
+
 ## Usage
 Install the dependencies:
 ```
