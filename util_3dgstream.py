@@ -32,8 +32,8 @@ def load_NTCs(FVV_path, gau_cuda:GaussianDataCUDA, total_frames:int = 150):
     xyz_bound = gau_cuda.get_xyz_bound()
     with open(config_path) as f:
         NTC_conf = json.load(f)
-    model=tcnn.NetworkWithInputEncoding(n_input_dims=3, n_output_dims=8, encoding_config=NTC_conf["encoding"], network_config=NTC_conf["network"]).to(torch.device("cuda"))
-    NTCs=[NeuralTransformationCache(model,xyz_bound[0],xyz_bound[1]) for path in NTC_paths]
+    models=[tcnn.NetworkWithInputEncoding(n_input_dims=3, n_output_dims=8, encoding_config=NTC_conf["encoding"], network_config=NTC_conf["network"]).to(torch.device("cuda")) for path in NTC_paths]
+    NTCs=[NeuralTransformationCache(model,xyz_bound[0],xyz_bound[1]) for model in models]
     for frame_id, ntc in enumerate(NTCs):
         ntc.load_state_dict(torch.load(NTC_paths[frame_id]))
     return NTCs
