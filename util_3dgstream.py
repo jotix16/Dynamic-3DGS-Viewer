@@ -26,8 +26,8 @@ def construct_list_of_attributes(gau_cuda:GaussianDataCUDA):
         l.append('rot_{}'.format(i))
     return l
     
-def load_NTCs(FVV_path, gau_cuda:GaussianDataCUDA):
-    NTC_paths=[os.path.join(FVV_path, 'NTCs', f'NTC_{frame_id:06}.pth') for frame_id in range(0, 299)]
+def load_NTCs(FVV_path, gau_cuda:GaussianDataCUDA, total_frames:int = 150):
+    NTC_paths=[os.path.join(FVV_path, 'NTCs', f'NTC_{frame_id:06}.pth') for frame_id in range(0, total_frames-1)]
     config_path=os.path.join(FVV_path, 'NTCs', 'config.json')
     xyz_bound = gau_cuda.get_xyz_bound()
     with open(config_path) as f:
@@ -38,13 +38,13 @@ def load_NTCs(FVV_path, gau_cuda:GaussianDataCUDA):
         ntc.load_state_dict(torch.load(NTC_paths[frame_id]))
     return NTCs
 
-def load_Additions(FVV_path):
-    addition_paths=[os.path.join(FVV_path, 'additional_3dgs', f'additions_{frame_id:06}.ply') for frame_id in range(0, 299)]
+def load_Additions(FVV_path, total_frames:int = 150):
+    addition_paths=[os.path.join(FVV_path, 'additional_3dgs', f'additions_{frame_id:06}.ply') for frame_id in range(0, total_frames-1)]
     additions_gaus=[load_ply(path) for path in addition_paths]
     additions_gaus_cuda=[gaus_cuda_from_cpu(gaus) for gaus in additions_gaus]
     return additions_gaus_cuda
 
-def get_per_frame_3dgs(FVV_path, gau_cuda:GaussianDataCUDA):
+def get_per_frame_3dgs(FVV_path, gau_cuda:GaussianDataCUDA, total_frames:int = 150):
     raise NotImplementedError("This function is not implemented yet")
 
 def save_gau_cuda(gau_cuda:GaussianDataCUDA, path:str):

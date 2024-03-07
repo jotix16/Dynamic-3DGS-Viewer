@@ -154,12 +154,13 @@ class CUDARenderer(GaussianRenderBase):
 
     def update_gaussian_data(self, gaus: util_gau.GaussianData):
         self.gaussians = gaus_cuda_from_cpu(gaus)
-        self.init_gaussians = self.gaussians
-        self.init_gaussians.xyz = self.gaussians.xyz.clone()
-        self.init_gaussians.rot = self.gaussians.rot.clone()
-        self.init_gaussians.scale = self.gaussians.scale.clone()
-        self.init_gaussians.opacity = self.gaussians.opacity.clone()
-        self.init_gaussians.sh = self.gaussians.sh.clone()
+        self.init_gaussians = GaussianDataCUDA(
+                                xyz = self.gaussians.xyz.clone(),
+                                rot = self.gaussians.rot.clone(),
+                                scale = self.gaussians.scale.clone(),
+                                opacity = self.gaussians.opacity.clone(),
+                                sh = self.gaussians.sh.clone()
+                            )
         self.raster_settings["sh_degree"] = int(np.round(np.sqrt(self.gaussians.sh_dim))) - 1
 
     def sort_and_update(self, camera: util.Camera):
@@ -212,13 +213,14 @@ class CUDARenderer(GaussianRenderBase):
 
     @torch.no_grad()    
     def cat_additions(self, timestep):
-        s2_gaussians = self.gaussians
         additions=self.additional_3dgs[timestep]
-        s2_gaussians.xyz = torch.cat([additions.xyz, self.gaussians.xyz], dim=0)
-        s2_gaussians.rot = torch.cat([additions.rot, self.gaussians.rot], dim=0)
-        s2_gaussians.scale = torch.cat([additions.scale, self.gaussians.scale], dim=0)
-        s2_gaussians.opacity = torch.cat([additions.opacity, self.gaussians.opacity], dim=0)
-        s2_gaussians.sh = torch.cat([additions.sh, self.gaussians.sh], dim=0)
+        s2_gaussians=GaussianDataCUDA(
+            xyz=torch.cat([additions.xyz, self.gaussians.xyz], dim=0),
+            rot=torch.cat([additions.rot, self.gaussians.rot], dim=0),
+            scale=torch.cat([additions.scale, self.gaussians.scale], dim=0),
+            opacity=torch.cat([additions.opacity, self.gaussians.opacity], dim=0),
+            sh=torch.cat([additions.sh, self.gaussians.sh], dim=0)
+        )
         return s2_gaussians
     
     def fvv_reset(self):
@@ -243,27 +245,24 @@ class CUDARenderer(GaussianRenderBase):
         self.raster_settings["tanfovy"] = hfovy
 
     def draw(self, timestep: int = 0):
-        # run cuda rasterizer now is just a placeholder
-        # img = torch.meshgrid((torch.linspace(0, 1, 720), torch.linspace(0, 1, 1280)))
-        # img = torch.stack([img[0], img[1], img[1], img[1]], dim=-1)
-        # img = img.float().cuda(0)
-        # img = img.contiguous()
         raster_settings = GaussianRasterizationSettings(**self.raster_settings)
         rasterizer = GaussianRasterizer(raster_settings=raster_settings)
         # means2D = torch.zeros_like(self.gaussians.xyz, dtype=self.gaussians.xyz.dtype, requires_grad=False, device="cuda")
         if timestep-self.last_timestep>0 and timestep<len(self.NTCs):
-            self.query_NTC(self.gaussians.xyz, timestep)
-            # self.s2_gaussians=self.cat_additions(timestep)
+            # self.query_NTC(self.gaussians.xyz, timestep)
+            rendered_gaussians=self.cat_additions(timestep)
             self.last_timestep+=1
+        else:
+            rendered_gaussians=self.gaussians
         with torch.no_grad():
             img, radii = rasterizer(
-                means3D = self.gaussians.xyz,
+                means3D = rendered_gaussians.xyz,
                 means2D = None,
-                shs = self.gaussians.sh,
+                shs = rendered_gaussians.sh,
                 colors_precomp = None,
-                opacities = self.gaussians.opacity,
-                scales = self.gaussians.scale,
-                rotations = self.gaussians.rot,
+                opacities = rendered_gaussians.opacity,
+                scales = rendered_gaussians.scale,
+                rotations = rendered_gaussians.rot,
                 cov3D_precomp = None
             )
 

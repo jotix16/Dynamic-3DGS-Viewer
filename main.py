@@ -47,7 +47,7 @@ g_last_frame_time = 0.0
 g_timestep = 0
 g_paused = True
 g_reset = False
-
+g_total_frame = 300
 def impl_glfw_init():
     window_name = "Tiny 3DGStream Viewer"
 
@@ -126,7 +126,7 @@ def main():
     global g_camera, g_renderer, g_renderer_list, g_renderer_idx, g_scale_modifier, g_auto_sort, \
         g_show_control_win, g_show_help_win, g_show_camera_win, \
         g_render_mode, g_render_mode_tables, \
-        g_FVV_path, g_paused, g_reset, g_timestep, g_last_frame_time
+        g_FVV_path, g_paused, g_reset, g_timestep, g_last_frame_time, g_total_frame
         
     imgui.create_context()
     if args.hidpi:
@@ -158,6 +158,14 @@ def main():
     gaussians = util_gau.naive_gaussian()
     update_activated_renderer_state(gaussians)
     g_last_frame_time=time.time()
+    
+    #debug only
+    gaussians = util_gau.load_ply("F:\\3dgstream\\flame_steak\\init_3dgs.ply")
+    g_renderer.update_gaussian_data(gaussians)
+    g_renderer.sort_and_update(g_camera)
+    g_renderer.NTCs = util_3dgstream.load_NTCs("F:\\3dgstream\\flame_steak", g_renderer.gaussians, 300)
+    g_renderer.additional_3dgs = util_3dgstream.load_Additions("F:\\3dgstream\\flame_steak", 300)
+    
     # settings
     while not glfw.window_should_close(window):
         glfw.poll_events()
@@ -170,7 +178,7 @@ def main():
         update_camera_pose_lazy()
         update_camera_intrin_lazy()
         current_time=time.time()
-        if current_time - g_last_frame_time >= VIDEO_INTERVAL and not g_paused:
+        if current_time - g_last_frame_time >= VIDEO_INTERVAL and not g_paused and g_timestep < g_total_frame:
             g_timestep+=1
             g_last_frame_time = current_time
         if g_reset:
@@ -206,16 +214,20 @@ def main():
 
                 imgui.text(f"Render FPS = {imgui.get_io().framerate:.1f}")
                 imgui.text(f"Video FPS = {VIDEO_FPS:.1f}")
-                imgui.text(f"FVV Dir = {g_FVV_path}")
-                imgui.text(f"Frame = {g_timestep}")
-                
+                imgui.text(f"FVV Dir:{g_FVV_path}")
+                imgui.text(f"Frame {g_timestep}")
+                imgui.text(f"#Frames: ")
+                imgui.same_line()
+                total_frame_changed, g_total_frame = imgui.slider_int(
+                    "frames", g_total_frame, 1, 300
+                )
                 if imgui.button("Pause"):
                     g_paused = True 
                     g_last_frame_time=time.time()
                 
                 imgui.same_line()
                 
-                if imgui.button("Continue"):
+                if imgui.button("Play"):
                     g_paused = False
                     g_last_frame_time=time.time()
                     
@@ -269,8 +281,8 @@ def main():
                     if dir_path:
                         try:
                             g_FVV_path = dir_path
-                            g_renderer.NTCs = util_3dgstream.load_NTCs(g_FVV_path, g_renderer.gaussians)
-                            g_renderer.additional_3dgs = util_3dgstream.load_Additions(g_FVV_path)
+                            g_renderer.NTCs = util_3dgstream.load_NTCs(g_FVV_path, g_renderer.gaussians, g_total_frame)
+                            g_renderer.additional_3dgs = util_3dgstream.load_Additions(g_FVV_path, g_total_frame)
                         except RuntimeError as e:
                             pass                
                 # camera fov
