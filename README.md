@@ -1,7 +1,7 @@
 # Tiny 3DGStreamViewer
 This is a fork of [GaussianSplattingViewer](https://github.com/limacv/GaussianSplattingViewer), as a simple 3DGStreamViewer built with CUDARasterizer.
 
-Note this is not the renderer we used to evaluate the render performance of [3DGStream](https://github.com/SJoJoK/3DGStream) in our paper "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos", but is still efficient enough for real-time rendering.
+Note this is not the renderer we used to evaluate the render performance of [3DGStream](https://github.com/SJoJoK/3DGStream) in our paper "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos", but is still efficient enough for real-time renderable FVVs
 
 ## Usage
 Install the dependencies:
