@@ -46,9 +46,15 @@ python main.py
 
 5. Click `laod FVV` and choose the directory where you unzip the FVV
 
-6. Click `Step` to step into next frame, click `Play` or `Pause` to play or pause the FVV, and click `reset` to get back to Frame 0
+6. Click `Step` to step into next frame, click `Play` or `Pause` to play or pause the FVV, and click `Reset` to get back to Frame 0
 
 Happy Hacking!
+
+## TO-DO List (Not guaranteed)
+
+- [ ] View the results of Stage 1 and/or Stage 2
+- [ ] Support OpenGL-backend
+- [ ] Align the functionality with the origin repo.
 
 ## Code-paper discrepancies
 
@@ -61,5 +67,5 @@ This project is a tiny viewer designed for simplicity and ease of use. We welcom
 
 ## Acknowledgements
 
-We would like to express our gratitude to the original repository [GaussianSplattingViewer](https://github.com/limacv/GaussianSplattingViewer) for providing the foundation upon which thisr work is built.
+We would like to express our gratitude to the original repository [GaussianSplattingViewer](https://github.com/limacv/GaussianSplattingViewer) for providing the foundation upon which this work is built.
 
