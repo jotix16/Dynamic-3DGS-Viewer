@@ -44,7 +44,7 @@ python main.py
 
    ![image](https://github.com/SJoJoK/3DGStreamViewer/assets/50450335/3e4c437a-ba1e-40f8-b022-3e88090b2a97)
 
-5. Click `laod FVV` and choose the directory where you unzip the FVV
+5. Click `load FVV` and choose the directory where you unzip the FVV
 
 6. Click `Step` to step into next frame, click `Play` or `Pause` to play or pause the FVV, and click `Reset` to get back to Frame 0
 
