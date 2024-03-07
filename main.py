@@ -178,7 +178,7 @@ def main():
         update_camera_pose_lazy()
         update_camera_intrin_lazy()
         current_time=time.time()
-        if current_time - g_last_frame_time >= VIDEO_INTERVAL and not g_paused and g_timestep < g_total_frame:
+        if current_time - g_last_frame_time >= VIDEO_INTERVAL and not g_paused and g_timestep < g_total_frame-1:
             g_timestep+=1
             g_last_frame_time = current_time
         if g_reset:

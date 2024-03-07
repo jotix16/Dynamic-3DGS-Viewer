@@ -85,6 +85,15 @@ class GaussianDataCUDA:
         half_percentile = (100 - percentile) / 200
         return torch.quantile(self.xyz,half_percentile,dim=0), torch.quantile(self.xyz,1 - half_percentile,dim=0)
 
+    def clone(self):
+        return GaussianDataCUDA(
+            xyz=self.xyz.clone(),
+            rot=self.rot.clone(),
+            scale=self.scale.clone(),
+            opacity=self.opacity.clone(),
+            sh=self.sh.clone(),
+        )
+    
 @dataclass
 class GaussianRasterizationSettingsStorage:
     image_height: int
@@ -145,7 +154,7 @@ class CUDARenderer(GaussianRenderBase):
         # the index of NTCs and additional_3dgs is the index of the current un-processed frame.
         self.NTCs = []
         self.additional_3dgs = []
-        self.last_timestep=0
+        self.current_timestep=0
         self.set_gl_texture(h, w)
 
         gl.glDisable(gl.GL_CULL_FACE)
@@ -224,8 +233,8 @@ class CUDARenderer(GaussianRenderBase):
         return s2_gaussians
     
     def fvv_reset(self):
-        self.gaussians = self.init_gaussians
-        self.last_timestep=0
+        self.gaussians = self.init_gaussians.clone()
+        self.current_timestep=0
         
     def update_camera_pose(self, camera: util.Camera):
         view_matrix = camera.get_view_matrix()
@@ -248,13 +257,13 @@ class CUDARenderer(GaussianRenderBase):
         raster_settings = GaussianRasterizationSettings(**self.raster_settings)
         rasterizer = GaussianRasterizer(raster_settings=raster_settings)
         # means2D = torch.zeros_like(self.gaussians.xyz, dtype=self.gaussians.xyz.dtype, requires_grad=False, device="cuda")
-        if timestep-self.last_timestep>0 and timestep<len(self.NTCs):
-            # self.query_NTC(self.gaussians.xyz, timestep)
-            rendered_gaussians=self.cat_additions(timestep)
-            self.last_timestep+=1
-        else:
-            rendered_gaussians=self.gaussians
+        rendered_gaussians = self.gaussians
         with torch.no_grad():
+            while(timestep-self.current_timestep>0):
+                self.query_NTC(self.gaussians.xyz, self.current_timestep)
+                self.current_timestep+=1
+            if self.current_timestep!=0:
+                rendered_gaussians=self.cat_additions(self.current_timestep-1)
             img, radii = rasterizer(
                 means3D = rendered_gaussians.xyz,
                 means2D = None,
@@ -265,7 +274,6 @@ class CUDARenderer(GaussianRenderBase):
                 rotations = rendered_gaussians.rot,
                 cov3D_precomp = None
             )
-
         img = img.permute(1, 2, 0)
         img = torch.concat([img, torch.ones_like(img[..., :1])], dim=-1)
         img = img.contiguous()
